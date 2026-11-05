@@ -1,5 +1,5 @@
 import { githubRawUrl } from "./from-ref.js";
-import type { FetchText, MarketplaceRef } from "./types.js";
+import type { CursorInstallPlan, FetchText, MarketplaceRef, Scope } from "./types.js";
 
 type MarketplaceJson = {
   plugins?: Array<{
@@ -15,7 +15,68 @@ type PluginJson = {
 
 type GitHubContentEntry = { name: string; type: string };
 
-export function expandSkillPath(ownerRepo: string, relPath: string): string {
+/** Read adapter for catalog resolution (remote fetch + optional local manifest tree). */
+export type CatalogDeps = {
+  fetchText: FetchText;
+  readLocal: (path: string) => Promise<string>;
+  manifestLocalPath?: string;
+};
+
+/**
+ * Resolve skill packages for a marketplace plugin entry: inline skills[], per-plugin manifest,
+ * or directory discovery (trailing `/` on plugin.json skills declaration).
+ */
+export async function resolveSkillPackages(
+  pluginEntryName: string,
+  ref: MarketplaceRef,
+  marketplaceText: string,
+  deps: CatalogDeps,
+): Promise<string[]> {
+  const relPaths = await resolvePluginSkillRelPaths(marketplaceText, pluginEntryName, ref, deps);
+  return relPaths.map((rel) => toSkillPackage(ref.ownerRepo, rel));
+}
+
+export async function buildPlan(
+  bundle: string,
+  ref: MarketplaceRef,
+  scope: Scope,
+  marketplaceText: string,
+  deps: CatalogDeps,
+): Promise<CursorInstallPlan> {
+  const packages = await resolveSkillPackages(bundle, ref, marketplaceText, deps);
+  return {
+    kind: "skills-cli",
+    bundle,
+    from: ref,
+    scope,
+    packages,
+  };
+}
+
+async function resolvePluginSkillRelPaths(
+  marketplaceText: string,
+  pluginEntryName: string,
+  ref: MarketplaceRef,
+  deps: CatalogDeps,
+): Promise<string[]> {
+  const marketplace = JSON.parse(marketplaceText) as MarketplaceJson;
+  const plugin = findPluginEntry(marketplace, pluginEntryName);
+
+  const inline = plugin.skills ?? [];
+  if (inline.length > 0) {
+    return inline;
+  }
+
+  return loadPerPluginManifestSkillRelPaths(
+    ref,
+    plugin.source ?? "./",
+    deps.fetchText,
+    deps.readLocal,
+    deps.manifestLocalPath,
+  );
+}
+
+function toSkillPackage(ownerRepo: string, relPath: string): string {
   const normalized = relPath.replace(/^\.\//, "").replace(/\/+$/, "");
   if (normalized.includes("..") || normalized.startsWith("/")) {
     throw new Error(`invalid skill path: ${relPath}`);
@@ -23,8 +84,8 @@ export function expandSkillPath(ownerRepo: string, relPath: string): string {
   return `${ownerRepo}/${normalized}`;
 }
 
-/** Skill paths in plugin.json are relative to the plugin folder; marketplace skills[] are repo-root relative. */
-export function repoRelativeSkillPath(pluginSource: string, skillRel: string): string {
+/** Skill paths in per-plugin manifest are relative to the plugin folder; marketplace skills[] are repo-root relative. */
+function pluginFolderRelativeSkillPath(pluginSource: string, skillRel: string): string {
   const rel = skillRel.replace(/^\.\//, "");
   const source = (pluginSource || "./").replace(/^\.\//, "").replace(/\/$/, "");
   if (!source || source === ".") {
@@ -80,25 +141,25 @@ async function discoverSkillRelPaths(
   skillsDir: string,
   fetchText: FetchText,
 ): Promise<string[]> {
-  const repoPath = repoRelativeSkillPath(pluginSource, skillsDir);
+  const repoPath = pluginFolderRelativeSkillPath(pluginSource, skillsDir);
   const entries = await fetchGitHubDirectoryListing(ref, repoPath, fetchText);
   const dirs = entries.filter((e) => e.type === "dir").sort((a, b) => a.name.localeCompare(b.name));
   if (dirs.length === 0) {
     throw new Error(`no skill directories under ${repoPath}`);
   }
-  return dirs.map((e) => repoRelativeSkillPath(pluginSource, joinRepoPath(skillsDir, e.name)));
+  return dirs.map((e) => pluginFolderRelativeSkillPath(pluginSource, joinRepoPath(skillsDir, e.name)));
 }
 
-function findPlugin(marketplace: MarketplaceJson, bundle: string) {
+function findPluginEntry(marketplace: MarketplaceJson, pluginEntryName: string) {
   const plugins = marketplace.plugins ?? [];
-  const plugin = plugins.find((p) => p.name === bundle);
+  const plugin = plugins.find((p) => p.name === pluginEntryName);
   if (!plugin) {
-    throw new Error(`unknown plugin: ${bundle}`);
+    throw new Error(`unknown plugin: ${pluginEntryName}`);
   }
   return plugin;
 }
 
-async function loadPluginJsonSkills(
+async function loadPerPluginManifestSkillRelPaths(
   ref: MarketplaceRef,
   pluginSource: string,
   fetchText: FetchText,
@@ -145,56 +206,7 @@ async function loadPluginJsonSkills(
   if (declared.mode === "discover") {
     return discoverSkillRelPaths(ref, source, declared.dir, fetchText);
   }
-  return declared.paths.map((p) => repoRelativeSkillPath(source, p));
-}
-
-export async function resolveSkillRelPaths(
-  marketplaceText: string,
-  bundle: string,
-  ref: MarketplaceRef,
-  deps: {
-    fetchText: FetchText;
-    readLocal: (path: string) => Promise<string>;
-    manifestLocalPath?: string;
-  },
-): Promise<string[]> {
-  const marketplace = JSON.parse(marketplaceText) as MarketplaceJson;
-  const plugin = findPlugin(marketplace, bundle);
-
-  const inline = plugin.skills ?? [];
-  if (inline.length > 0) {
-    return inline;
-  }
-
-  return loadPluginJsonSkills(
-    ref,
-    plugin.source ?? "./",
-    deps.fetchText,
-    deps.readLocal,
-    deps.manifestLocalPath,
-  );
-}
-
-export async function buildPlan(
-  bundle: string,
-  ref: MarketplaceRef,
-  scope: import("./types.js").Scope,
-  marketplaceText: string,
-  deps: {
-    fetchText: FetchText;
-    readLocal: (path: string) => Promise<string>;
-    manifestLocalPath?: string;
-  },
-): Promise<import("./types.js").CursorInstallPlan> {
-  const relPaths = await resolveSkillRelPaths(marketplaceText, bundle, ref, deps);
-  const packages = relPaths.map((rel) => expandSkillPath(ref.ownerRepo, rel));
-  return {
-    kind: "skills-cli",
-    bundle,
-    from: ref,
-    scope,
-    packages,
-  };
+  return declared.paths.map((p) => pluginFolderRelativeSkillPath(source, p));
 }
 
 function joinRepoPath(source: string, file: string): string {
