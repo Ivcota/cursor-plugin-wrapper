@@ -1,0 +1,10 @@
+{
+  "name": "mattpocock",
+  "plugins": [
+    {
+      "name": "mattpocock-skills",
+      "source": "./",
+      "description": "Matt Pocock agent skills"
+    }
+  ]
+}

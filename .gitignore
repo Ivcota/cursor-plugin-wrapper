@@ -1,6 +1,9 @@
 node_modules/
 dist/
+*.tsbuildinfo
 *.log
 .DS_Store
 .env
 .env.*
+.cursor/skills/verify-deck/evidence/
+.ketchup-video/

@@ -1,22 +1,26 @@
-# cursor-plugin-wrapper
+# cursor-plugin-wrapper (skill-deck)
 
-Install Ivcota skill **bundles** on Cursor from the same **marketplace.json** used by Claude Code and Codex.
+Install marketplace **skill bundles** on Cursor from the same **marketplace.json** family used by Claude Code and Codex.
 
 ```bash
-# Planned (Phase 1)
-ivcota install learn-think
-ivcota remove learn-think
+npm install -g skill-deck   # bin: deck
+deck add write-communicate --from Ivcota/skills@main
+deck plan mattpocock-skills --from mattpocock/skills@main
+deck rm write-communicate
 ```
 
-Today this repository contains the **plan** only. See **[plan.md](./plan.md)** for implementation phases and agent scope defaults.
+Bundle state is stored in `.ivcota/installed-bundles.json`. Skills are installed via `npx skills add` into `.agents/skills` (project scope by default).
+
+See **[plan.md](./plan.md)** for phases and architecture. Chat agents can use the **`install-skill-deck`** skill (shell out to `deck` only).
 
 ## Problem
 
 - Claude: `claude plugin install learn-think@ivcota-skills`
-- Cursor (today): many `npx skills add Ivcota/skills/...` lines
+- Cursor (today): many `npx skills add owner/repo/...` lines
 
-This project adds one command that reads the marketplace catalog and installs the right subset **project-scoped** by default.
+**deck** reads the catalog (and `plugin.json` when the marketplace row has no `skills[]`) and installs the right subset in one command.
 
 ## Related
 
 - Skill source and catalog: [Ivcota/skills](https://github.com/Ivcota/skills)
+- Example community catalog: [mattpocock/skills](https://github.com/mattpocock/skills)
