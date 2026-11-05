@@ -18,7 +18,7 @@ This repo is the **adapter** that understands **marketplace.json** and performs 
 | Project scope default | Skills land in `.agents/skills`; global requires an explicit flag |
 | Reversible | `ivcota remove learn-think` removes tracked skills without manual folder hunting |
 | Idempotent | Repeated install converges; no duplicate lockfile entries |
-| Pickup-friendly | `plan.md` + `AGENTS.md` let a new agent continue without chat history |
+| Pickup-friendly | `plan.md` and `.cursor/rules` let a new agent continue without chat history |
 
 ## Non-goals (Phase 1)
 
@@ -89,8 +89,8 @@ BundleInstallRecord
 ### Phase 0 — Repo bootstrap (this commit)
 
 - [x] `plan.md` (this file)
-- [x] `AGENTS.md` for Cursor agents
 - [x] `README.md` entry point
+- [x] `.cursor/rules/project.mdc` for Cursor agents
 - [x] `.gitignore`
 - [ ] Remote on GitHub (operator)
 
@@ -150,7 +150,7 @@ Environment overrides (optional later): `IVCOTA_DEFAULT_FROM=Ivcota/skills@main`
 
 ## Session pickup checklist
 
-1. Read `AGENTS.md` and this file.
+1. Read this file and `.cursor/rules/project.mdc`.
 2. Confirm `Ivcota/skills` marketplace still lists target bundle under `plugins[].name`.
 3. Continue Phase 1 from the first unchecked step in the phase table.
 4. Run integration test in a temp git repo before declaring Phase 1 done.

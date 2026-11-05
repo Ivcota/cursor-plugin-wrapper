@@ -5,7 +5,7 @@ alwaysApply: true
 
 Read `plan.md` before implementing install or marketplace parsing logic.
 
-Read `AGENTS.md` for scope defaults (project `.agents/skills`, bundle state under `.ivcota/` in the target project).
+Scope defaults are in `plan.md`. Project skills use `.agents/skills`. Bundle state lives in `.ivcota/installed-bundles.json` in the target project.
 
 Do not duplicate skill lists from `Ivcota/skills` marketplace.json in this repo. Parse the catalog at install time.
 

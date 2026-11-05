@@ -8,7 +8,7 @@ ivcota install learn-think
 ivcota remove learn-think
 ```
 
-Today this repository contains the **plan and agent docs** only. See **[plan.md](./plan.md)** for implementation phases and **[AGENTS.md](./AGENTS.md)** for Cursor agent instructions.
+Today this repository contains the **plan** only. See **[plan.md](./plan.md)** for implementation phases and agent scope defaults.
 
 ## Problem
 
