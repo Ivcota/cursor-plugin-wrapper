@@ -2,7 +2,7 @@ import { readFile as fsReadFile, writeFile as fsWriteFile, mkdir as fsMkdir } fr
 import { isAbsolute, join } from "node:path";
 import { buildPlan } from "./catalog.js";
 import { parseArgv } from "./argv.js";
-import { formatFrom, githubRawUrl, defaultMarketplaceRef } from "./from-ref.js";
+import { formatFrom, githubRawUrl, defaultMarketplaceRef, MARKETPLACE_MANIFEST_CANDIDATES } from "./from-ref.js";
 import { packagesToApply, readLedger, writeLedger } from "./ledger.js";
 import { createSkillsPort } from "./skills-cli.js";
 import type { BundleInstallRecord, CursorInstallPlan, Ports, RunResult } from "./types.js";
@@ -16,9 +16,20 @@ async function loadMarketplaceText(
     const text = await ports.readFile(path);
     return { text, manifestLocalPath: path };
   }
-  const url = githubRawUrl(parsed.from, parsed.from.manifestPath);
-  const text = await ports.fetchText(url);
-  return { text };
+  const candidates = parsed.from.manifestPath
+    ? [parsed.from.manifestPath]
+    : [...MARKETPLACE_MANIFEST_CANDIDATES];
+  let lastErr: unknown;
+  for (const manifestPath of candidates) {
+    const url = githubRawUrl(parsed.from, manifestPath);
+    try {
+      const text = await ports.fetchText(url);
+      return { text };
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 }
 
 function renderPlan(plan: CursorInstallPlan, json: boolean): string {

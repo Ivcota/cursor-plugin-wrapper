@@ -1,8 +1,9 @@
 # cursor-plugin-wrapper (skill-deck)
 
-Install marketplace **skill bundles** on Cursor from the same **marketplace.json** family used by Claude Code and Codex.
+Install **skills** from a **marketplace plugin entry** on Cursor, using the same **marketplace manifest** family as Claude Code and Codex. Phase 1 uses the skills CLI; it is not Cursor’s native **Install plugin** flow (see [Cursor plugins](https://cursor.com/docs/plugins)).
 
-Repository: **https://github.com/Ivcota/cursor-plugin-wrapper**
+Repository: **https://github.com/Ivcota/cursor-plugin-wrapper**  
+Terminology: **[GLOSSARY.md](./GLOSSARY.md)**
 
 ## Install `deck`
 
@@ -49,10 +50,10 @@ npx --yes github:Ivcota/cursor-plugin-wrapper deck plan write-communicate --from
 Teaches the agent to shell out to `deck` / `npx github:Ivcota/cursor-plugin-wrapper` only:
 
 ```bash
-# project (.agents/skills)
+# project scope (.agents/skills)
 npx skills add Ivcota/cursor-plugin-wrapper/install-skill-deck -y -a cursor
 
-# or global (~/.cursor/skills)
+# user scope (~/.cursor/skills)
 npx skills add Ivcota/cursor-plugin-wrapper/install-skill-deck -y -a cursor -g
 ```
 
@@ -67,20 +68,20 @@ deck rm write-communicate
 deck ls
 ```
 
-- **`--global`** — install into user skills dir instead of `.agents/skills`
-- **`--manifest ./path/to/marketplace.json`** — local catalog file
+- **`--global`** — **user scope** (user skill dirs); default is **project scope** (`.agents/skills`)
+- **`--manifest ./path/to/marketplace.json`** — local marketplace manifest
 - **`--json`** — machine-readable stdout
 
-Bundle state: `.ivcota/installed-bundles.json` in that project. Skills are installed via `npx skills add` (Cursor agent `-a cursor`).
+**Installed-plugins ledger:** `.ivcota/installed-bundles.json` in the **current working directory** (even when using `--global`). Re-run `deck add <plugin>` to resume a **partial** install. Skills are installed via `npx skills add` (Cursor agent `-a cursor`).
 
-Default catalog when `--from` is omitted: `Ivcota/skills@main` (override with env `SKILL_DECK_FROM=owner/repo@ref`).
+Default catalog when `--from` is omitted: `Ivcota/skills@main` (override with env `SKILL_DECK_FROM=owner/repo@ref`). Remote fetch tries `.cursor-plugin/marketplace.json`, then `.claude-plugin/marketplace.json`.
 
 ## Problem
 
 - Claude: `claude plugin install learn-think@ivcota-skills`
 - Cursor (today): many `npx skills add owner/repo/...` lines
 
-**deck** reads the catalog (and `plugin.json` when the marketplace row has no `skills[]`) and installs the right subset in one command.
+**deck** reads the marketplace manifest (and per-plugin manifest when the plugin entry has no `skills[]`) and installs the right skill packages in one command.
 
 ## Related
 

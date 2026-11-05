@@ -3,9 +3,9 @@ description: cursor-plugin-wrapper defaults for agents in this repo
 alwaysApply: true
 ---
 
-Read `plan.md` before implementing install or marketplace parsing logic.
+Read `plan.md` and `GLOSSARY.md` before implementing install or marketplace parsing logic.
 
-Scope defaults are in `plan.md`. Project skills use `.agents/skills`. Bundle state lives in `.ivcota/installed-bundles.json` in the target project.
+Use Cursor-aligned terms: **plugin** / **plugin entry**, not “bundle” in operator-facing text. Scope defaults are in `plan.md`. Project scope uses `.agents/skills`; `--global` is user scope. Installed-plugins ledger: `.ivcota/installed-bundles.json` in the target project cwd (even for user scope).
 
 Do not duplicate skill lists from `Ivcota/skills` marketplace.json in this repo. Parse the catalog at install time.
 
