@@ -10,8 +10,10 @@ type MarketplaceJson = {
 };
 
 type PluginJson = {
-  skills?: string[];
+  skills?: string[] | string;
 };
+
+type GitHubContentEntry = { name: string; type: string };
 
 export function expandSkillPath(ownerRepo: string, relPath: string): string {
   const normalized = relPath.replace(/^\.\//, "").replace(/\/+$/, "");
@@ -19,6 +21,72 @@ export function expandSkillPath(ownerRepo: string, relPath: string): string {
     throw new Error(`invalid skill path: ${relPath}`);
   }
   return `${ownerRepo}/${normalized}`;
+}
+
+/** Skill paths in plugin.json are relative to the plugin folder; marketplace skills[] are repo-root relative. */
+export function repoRelativeSkillPath(pluginSource: string, skillRel: string): string {
+  const rel = skillRel.replace(/^\.\//, "");
+  const source = (pluginSource || "./").replace(/^\.\//, "").replace(/\/$/, "");
+  if (!source || source === ".") {
+    return skillRel.startsWith("./") ? skillRel : `./${rel}`;
+  }
+  return `./${source}/${rel}`;
+}
+
+function normalizeSkillsDeclaration(
+  skills: string[] | string | undefined,
+): { mode: "paths"; paths: string[] } | { mode: "discover"; dir: string } {
+  if (skills === undefined) {
+    return { mode: "discover", dir: "./skills" };
+  }
+  if (typeof skills === "string") {
+    const s = skills.trim();
+    if (!s) {
+      return { mode: "discover", dir: "./skills" };
+    }
+    if (s.endsWith("/")) {
+      return { mode: "discover", dir: s.replace(/\/+$/, "") || "./skills" };
+    }
+    return { mode: "paths", paths: [s] };
+  }
+  if (skills.length === 0) {
+    return { mode: "discover", dir: "./skills" };
+  }
+  return { mode: "paths", paths: skills };
+}
+
+async function fetchGitHubDirectoryListing(
+  ref: MarketplaceRef,
+  repoRelativePath: string,
+  fetchText: FetchText,
+): Promise<GitHubContentEntry[]> {
+  const [owner, repo] = ref.ownerRepo.split("/");
+  if (!owner || !repo) {
+    throw new Error(`invalid owner/repo: ${ref.ownerRepo}`);
+  }
+  const path = repoRelativePath.replace(/^\.\//, "").replace(/\/+$/, "");
+  const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${encodeURIComponent(ref.ref)}`;
+  const text = await fetchText(url);
+  const parsed = JSON.parse(text) as unknown;
+  if (!Array.isArray(parsed)) {
+    throw new Error(`expected skills directory listing at ${path}`);
+  }
+  return parsed as GitHubContentEntry[];
+}
+
+async function discoverSkillRelPaths(
+  ref: MarketplaceRef,
+  pluginSource: string,
+  skillsDir: string,
+  fetchText: FetchText,
+): Promise<string[]> {
+  const repoPath = repoRelativeSkillPath(pluginSource, skillsDir);
+  const entries = await fetchGitHubDirectoryListing(ref, repoPath, fetchText);
+  const dirs = entries.filter((e) => e.type === "dir").sort((a, b) => a.name.localeCompare(b.name));
+  if (dirs.length === 0) {
+    throw new Error(`no skill directories under ${repoPath}`);
+  }
+  return dirs.map((e) => repoRelativeSkillPath(pluginSource, joinRepoPath(skillsDir, e.name)));
 }
 
 function findPlugin(marketplace: MarketplaceJson, bundle: string) {
@@ -50,11 +118,11 @@ async function loadPluginJsonSkills(
   }
 
   const pluginJson = JSON.parse(text) as PluginJson;
-  const skills = pluginJson.skills ?? [];
-  if (skills.length === 0) {
-    throw new Error(`plugin.json has no skills for bundle`);
+  const declared = normalizeSkillsDeclaration(pluginJson.skills);
+  if (declared.mode === "discover") {
+    return discoverSkillRelPaths(ref, source, declared.dir, fetchText);
   }
-  return skills;
+  return declared.paths.map((p) => repoRelativeSkillPath(source, p));
 }
 
 export async function resolveSkillRelPaths(
