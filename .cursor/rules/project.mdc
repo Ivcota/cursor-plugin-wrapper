@@ -1,0 +1,12 @@
+---
+description: cursor-plugin-wrapper defaults for agents in this repo
+alwaysApply: true
+---
+
+Read `plan.md` before implementing install or marketplace parsing logic.
+
+Read `AGENTS.md` for scope defaults (project `.agents/skills`, bundle state under `.ivcota/` in the target project).
+
+Do not duplicate skill lists from `Ivcota/skills` marketplace.json in this repo. Parse the catalog at install time.
+
+Phase 1 is skills-cli only. Do not add Cursor marketplace publish or `install_plugin` integration until Phase 2 in plan.md.
