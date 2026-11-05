@@ -93,7 +93,7 @@ function findPlugin(marketplace: MarketplaceJson, bundle: string) {
   const plugins = marketplace.plugins ?? [];
   const plugin = plugins.find((p) => p.name === bundle);
   if (!plugin) {
-    throw new Error(`unknown bundle: ${bundle}`);
+    throw new Error(`unknown plugin: ${bundle}`);
   }
   return plugin;
 }
@@ -106,15 +106,38 @@ async function loadPluginJsonSkills(
   manifestLocalPath?: string,
 ): Promise<string[]> {
   const source = pluginSource || "./";
-  const pluginJsonRel = joinRepoPath(source, ".claude-plugin/plugin.json");
+  const pluginJsonRelPaths = [
+    joinRepoPath(source, ".cursor-plugin/plugin.json"),
+    joinRepoPath(source, "plugin.json"),
+    joinRepoPath(source, ".claude-plugin/plugin.json"),
+  ];
 
-  let text: string;
+  let text: string | undefined;
+  let lastErr: unknown;
   if (manifestLocalPath) {
     const manifestDir = manifestLocalPath.replace(/\/[^/]+$/, "");
     const repoRoot = source === "./" ? dirname(manifestDir) : joinPath(manifestDir, source);
-    text = await readLocal(joinPath(repoRoot, ".claude-plugin/plugin.json"));
+    for (const pluginJsonRel of pluginJsonRelPaths) {
+      const localPath = joinPath(repoRoot, pluginJsonRel.replace(/^\.\//, ""));
+      try {
+        text = await readLocal(localPath);
+        break;
+      } catch (err) {
+        lastErr = err;
+      }
+    }
   } else {
-    text = await fetchText(githubRawUrl(ref, pluginJsonRel));
+    for (const pluginJsonRel of pluginJsonRelPaths) {
+      try {
+        text = await fetchText(githubRawUrl(ref, pluginJsonRel));
+        break;
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+  }
+  if (text === undefined) {
+    throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
   }
 
   const pluginJson = JSON.parse(text) as PluginJson;

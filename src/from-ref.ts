@@ -2,7 +2,13 @@ import type { MarketplaceRef } from "./types.js";
 
 const DEFAULT_OWNER_REPO = "Ivcota/skills";
 const DEFAULT_REF = "main";
-const DEFAULT_MANIFEST = ".claude-plugin/marketplace.json";
+/** Cursor-native first; Claude-compatible repos (e.g. Ivcota/skills) second. */
+export const MARKETPLACE_MANIFEST_CANDIDATES = [
+  ".cursor-plugin/marketplace.json",
+  ".claude-plugin/marketplace.json",
+] as const;
+
+const DEFAULT_MANIFEST = MARKETPLACE_MANIFEST_CANDIDATES[0];
 
 export function parseFromFlag(raw: string): MarketplaceRef {
   const at = raw.lastIndexOf("@");

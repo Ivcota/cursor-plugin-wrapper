@@ -62,10 +62,10 @@ export function parseArgv(argv: string[], env: NodeJS.ProcessEnv): ParsedCommand
 
   const bundle = positional[0];
   if (!bundle) {
-    throw new Error(`usage: deck ${cmd} <bundle>`);
+    throw new Error(`usage: deck ${cmd} <plugin>`);
   }
   if (bundle.includes("/")) {
-    throw new Error("pass a bundle name, not a skill path");
+    throw new Error("pass a plugin name, not a skill path");
   }
 
   if (cmd === "add") {
