@@ -43,7 +43,8 @@ If doctor fails, fix build before driving features.
 Harness: subprocess CLI with cwd and env you control. Use the repo’s built binary:
 
 ```bash
-DECK="node $(pwd)/dist/cli.js"
+ROOT="$(pwd)"
+DECK=(node "$ROOT/dist/cli.js")
 ```
 
 **Isolation:** For mutating features (`add`, `rm`), never run against the repo root as cwd. Create a disposable project directory:
@@ -61,7 +62,7 @@ Read `.cursor/skills/verify-deck/features/README.md` and drive the feature file 
 Example (plan, live catalog):
 
 ```bash
-$DECK plan write-communicate --from Ivcota/skills@main \
+"${DECK[@]}" plan write-communicate --from Ivcota/skills@main \
   | tee "$EVIDENCE_DIR/plan-write-communicate.json"
 ```
 
@@ -82,7 +83,7 @@ Standards:
 
 - Use real `deck` invocations, not direct `npx skills` loops.
 - Capture **command, exit code, stdout, stderr** for each step.
-- For `add`/`rm`, assert **filesystem** (`.agents/skills/`, `.ivcota/installed-bundles.json`) after the command, not stdout alone.
+- For `add`/`rm`, assert **filesystem** (`.agents/skills/`, `skills-lock.json`, `.ivcota/installed-bundles.json`) after the command, not stdout alone. After `rm`, check the bundle key is gone from the ledger and every recorded `skillKey` is removed from disk and the lockfile.
 - `plan` touches the network (GitHub raw). `add`/`rm` also invoke `npx skills` (network + skills CLI).
 
 ## Cleanup
@@ -102,7 +103,8 @@ If you accidentally ran `add` in the repo root, remove `.ivcota/installed-bundle
 ```bash
 .cursor/skills/verify-deck/scripts/doctor.sh
 .cursor/skills/verify-deck/scripts/smoke-plan.sh    # plan write-communicate + mattpocock-skills
+.cursor/skills/verify-deck/scripts/smoke-add-rm.sh # add/rm fixture bundle in a temp project (network)
 .cursor/skills/verify-deck/scripts/cleanup-workdir.sh <path>
 ```
 
-`smoke-plan.sh` writes evidence under `.cursor/skills/verify-deck/evidence/<RUN_ID>/` and prints that path on success.
+`smoke-plan.sh` and `smoke-add-rm.sh` write evidence under `.cursor/skills/verify-deck/evidence/<RUN_ID>/` and print that path on success.
