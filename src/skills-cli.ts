@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import {
   readInstalledSkillKeys,
+  skillInstallNameFromPackage,
   skillKeysAdded,
   skillRemoveArg,
 } from "./skills-lock.js";
@@ -27,7 +28,7 @@ function run(cmd: string, args: string[], cwd: string): Promise<{ code: number; 
 export function createSkillsPort(cwd: string): SkillsPort {
   return {
     async add(pkg: string, scope: Scope): Promise<string> {
-      const before = await readInstalledSkillKeys(cwd);
+      const before = await readInstalledSkillKeys(cwd, scope);
       const args = ["--yes", "skills", "add", pkg, "-y", "-a", "cursor"];
       if (scope === "global") {
         args.push("-g");
@@ -36,14 +37,20 @@ export function createSkillsPort(cwd: string): SkillsPort {
       if (result.code !== 0) {
         throw new Error(`skills add failed for ${pkg}: ${result.stderr || result.stdout}`);
       }
-      const after = await readInstalledSkillKeys(cwd);
+      const after = await readInstalledSkillKeys(cwd, scope);
       const added = skillKeysAdded(before, after);
-      if (added.length !== 1) {
-        throw new Error(
-          `expected 1 new skills-lock entry after add ${pkg}, got ${added.length}: ${added.join(", ") || "(none)"}`,
-        );
+      if (added.length === 1) {
+        return added[0]!;
       }
-      return added[0]!;
+      if (added.length === 0) {
+        const expected = skillInstallNameFromPackage(pkg);
+        if (after.has(expected)) {
+          return expected;
+        }
+      }
+      throw new Error(
+        `expected 1 new skills-lock entry after add ${pkg}, got ${added.length}: ${added.join(", ") || "(none)"}`,
+      );
     },
     async remove(key: string, scope: Scope): Promise<void> {
       const removeId = skillRemoveArg(key);
