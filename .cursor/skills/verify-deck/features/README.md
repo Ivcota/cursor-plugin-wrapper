@@ -20,7 +20,7 @@ Maintained recipes for user-facing **deck** behavior. Read this index, then open
 ## Proof and skip reporting
 
 - Plan proof: parsed JSON with expected package count and prefixes.
-- Add/rm proof: ledger file plus `.agents/skills/` entries, and command transcript.
+- Add/rm proof: ledger (`skillKeys` as lockfile ids), `skills-lock.json`, `.agents/skills/` after add and after rm, plus command transcript.
 - If GitHub or `npx skills` is unreachable, report the failure and do not claim the feature verified.
 
 ## Features
