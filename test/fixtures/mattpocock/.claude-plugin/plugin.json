@@ -1,0 +1,7 @@
+{
+  "name": "mattpocock-skills",
+  "skills": [
+    "./skills/engineering/tdd",
+    "./skills/engineering/code-review"
+  ]
+}

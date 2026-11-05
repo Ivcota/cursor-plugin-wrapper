@@ -1,0 +1,14 @@
+{
+  "plugins": [
+    {
+      "name": "write-communicate",
+      "source": "./",
+      "skills": [
+        "./write-communicate/learn-my-voice",
+        "./write-communicate/style-profile",
+        "./write-communicate/style-to-skill",
+        "./write-communicate/humanizer"
+      ]
+    }
+  ]
+}
