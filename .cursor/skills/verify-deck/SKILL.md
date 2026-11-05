@@ -102,7 +102,7 @@ If you accidentally ran `add` in the repo root, remove `.ivcota/installed-bundle
 
 ```bash
 .cursor/skills/verify-deck/scripts/doctor.sh
-.cursor/skills/verify-deck/scripts/smoke-plan.sh    # plan write-communicate + mattpocock-skills
+.cursor/skills/verify-deck/scripts/smoke-plan.sh    # plan write-communicate + mattpocock-skills + humanlayer rpi
 .cursor/skills/verify-deck/scripts/smoke-add-rm.sh # add/rm fixture bundle in a temp project (network)
 .cursor/skills/verify-deck/scripts/cleanup-workdir.sh <path>
 ```

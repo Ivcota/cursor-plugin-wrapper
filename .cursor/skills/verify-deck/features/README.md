@@ -27,4 +27,5 @@ Maintained recipes for user-facing **deck** behavior. Read this index, then open
 
 - [Plan a marketplace bundle](./plan-marketplace-bundle.md) — Ivcota-style row with `skills[]` (live network).
 - [Plan plugin.json fallback](./plan-plugin-json-fallback.md) — Matt Pocock-style row without inline skills (live network).
+- [Plan HumanLayer plugin layout](./plan-humanlayer-plugin-layout.md) — nested `plugins/<name>/` with directory `skills` (live network + contents API).
 - [Add and remove a bundle](./add-remove-bundle.md) — install and uninstall using a local manifest fixture (calls real `npx skills`).
