@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { buildPlan, repoRelativeSkillPath } from "../src/catalog.js";
+import { buildPlan, resolveSkillPackages } from "../src/catalog.js";
 import type { MarketplaceRef } from "../src/types.js";
 
 const root = join(fileURLToPath(new URL(".", import.meta.url)), "fixtures");
@@ -13,23 +13,16 @@ const ivcotaRef: MarketplaceRef = {
   manifestPath: ".claude-plugin/marketplace.json",
 };
 
-describe("repoRelativeSkillPath", () => {
-  it("joins plugin source with skill paths", () => {
-    expect(repoRelativeSkillPath("./plugins/rpi", "./skills/rpi")).toBe("./plugins/rpi/skills/rpi");
-    expect(repoRelativeSkillPath("./", "./skills/engineering/tdd")).toBe("./skills/engineering/tdd");
-  });
-});
-
-describe("buildPlan", () => {
+describe("resolveSkillPackages", () => {
   it("expands write-communicate from marketplace skills[]", async () => {
     const text = await readFile(join(root, "ivcota-write-communicate.json"), "utf8");
-    const plan = await buildPlan("write-communicate", ivcotaRef, "project", text, {
+    const packages = await resolveSkillPackages("write-communicate", ivcotaRef, text, {
       fetchText: async () => {
         throw new Error("should not fetch");
       },
       readLocal: async () => "",
     });
-    expect(plan.packages).toEqual([
+    expect(packages).toEqual([
       "Ivcota/skills/write-communicate/learn-my-voice",
       "Ivcota/skills/write-communicate/style-profile",
       "Ivcota/skills/write-communicate/style-to-skill",
@@ -37,7 +30,7 @@ describe("buildPlan", () => {
     ]);
   });
 
-  it("falls back to plugin.json when marketplace row has no skills[]", async () => {
+  it("falls back to per-plugin manifest when entry has no skills[]", async () => {
     const manifestPath = join(root, "mattpocock/.claude-plugin/marketplace.json");
     const text = await readFile(manifestPath, "utf8");
     const ref: MarketplaceRef = {
@@ -45,20 +38,20 @@ describe("buildPlan", () => {
       ref: "main",
       manifestPath: ".claude-plugin/marketplace.json",
     };
-    const plan = await buildPlan("mattpocock-skills", ref, "project", text, {
+    const packages = await resolveSkillPackages("mattpocock-skills", ref, text, {
       fetchText: async () => {
         throw new Error("should not fetch");
       },
       readLocal: async (p) => readFile(p, "utf8"),
       manifestLocalPath: manifestPath,
     });
-    expect(plan.packages).toEqual([
+    expect(packages).toEqual([
       "mattpocock/skills/skills/engineering/tdd",
       "mattpocock/skills/skills/engineering/code-review",
     ]);
   });
 
-  it("discovers skills under plugin.json directory declaration (humanlayer layout)", async () => {
+  it("discovers skills under per-plugin manifest directory declaration (humanlayer layout)", async () => {
     const marketplaceText = JSON.stringify({
       plugins: [{ name: "rpi", source: "./plugins/rpi" }],
     });
@@ -67,7 +60,7 @@ describe("buildPlan", () => {
       ref: "main",
       manifestPath: ".claude-plugin/marketplace.json",
     };
-    const plan = await buildPlan("rpi", ref, "project", marketplaceText, {
+    const packages = await resolveSkillPackages("rpi", ref, marketplaceText, {
       fetchText: async (url) => {
         if (url.includes("plugin.json")) {
           return JSON.stringify({ name: "rpi", skills: "./skills/" });
@@ -79,6 +72,22 @@ describe("buildPlan", () => {
       },
       readLocal: async () => "",
     });
-    expect(plan.packages).toEqual(["humanlayer/skills/plugins/rpi/skills/rpi"]);
+    expect(packages).toEqual(["humanlayer/skills/plugins/rpi/skills/rpi"]);
+  });
+});
+
+describe("buildPlan", () => {
+  it("wraps resolveSkillPackages with install plan metadata", async () => {
+    const text = await readFile(join(root, "ivcota-write-communicate.json"), "utf8");
+    const plan = await buildPlan("write-communicate", ivcotaRef, "project", text, {
+      fetchText: async () => {
+        throw new Error("should not fetch");
+      },
+      readLocal: async () => "",
+    });
+    expect(plan.kind).toBe("skills-cli");
+    expect(plan.bundle).toBe("write-communicate");
+    expect(plan.scope).toBe("project");
+    expect(plan.packages).toHaveLength(4);
   });
 });
