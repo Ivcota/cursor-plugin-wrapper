@@ -13,7 +13,7 @@ Run **one** of these from the **project root**:
 
 ```bash
 deck add <bundle>
-npx skill-deck@latest add <bundle>
+npx --yes github:Ivcota/cursor-plugin-wrapper deck add <bundle>
 ```
 
 Remove, preview, or list:
@@ -31,4 +31,4 @@ Use `--from owner/repo@ref` when the user names a catalog other than the default
 - Do not read `marketplace.json` and run `npx skills add` per path yourself.
 - Do not copy skill folders under `.agents/skills` by hand for a bundle install.
 
-If `deck` is missing, use `npx skill-deck@latest` with the same subcommand.
+If `deck` is missing, use `npx --yes github:Ivcota/cursor-plugin-wrapper deck <subcommand>` (see README install options).
