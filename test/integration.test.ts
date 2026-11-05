@@ -18,16 +18,15 @@ describe("deck add / rm", () => {
           cwd,
           skills: {
             async add(pkg) {
-              installed.add(pkg);
               const name = pkg.split("/").pop()!;
+              installed.add(name);
               const dir = join(cwd, ".agents/skills", name);
               await import("node:fs/promises").then((fs) => fs.mkdir(dir, { recursive: true }));
-              return pkg;
+              return name;
             },
             async remove(key) {
               installed.delete(key);
-              const name = key.split("/").pop()!;
-              const dir = join(cwd, ".agents/skills", name);
+              const dir = join(cwd, ".agents/skills", key);
               await rm(dir, { recursive: true, force: true });
             },
           },
@@ -42,14 +41,22 @@ describe("deck add / rm", () => {
 
       await expect(stat(join(cwd, ".agents/skills", "humanizer"))).resolves.toBeDefined();
 
-      const rmResult = await run(["rm", "write-communicate"], { cwd, skills: {
-        async add(pkg) { return pkg; },
-        async remove(key) {
-          installed.delete(key);
-          const name = key.split("/").pop()!;
-          await rm(join(cwd, ".agents/skills", name), { recursive: true, force: true });
+      expect(ledger.bundles["write-communicate"].skillKeys).toEqual(
+        expect.arrayContaining(["learn-my-voice", "humanizer"]),
+      );
+
+      const rmResult = await run(["rm", "write-communicate"], {
+        cwd,
+        skills: {
+          async add(pkg) {
+            return pkg.split("/").pop()!;
+          },
+          async remove(key) {
+            installed.delete(key);
+            await rm(join(cwd, ".agents/skills", key), { recursive: true, force: true });
+          },
         },
-      }});
+      });
       expect(rmResult.code).toBe(0);
       expect(installed.size).toBe(0);
       const ledgerAfter = JSON.parse(await readFile(ledgerPath, "utf8"));
